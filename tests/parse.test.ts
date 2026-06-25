@@ -48,4 +48,12 @@ describe("parseSkillFile", () => {
     expect(skill).toBeDefined();
     expect(diagnostics.some((d) => d.level === "warn" && d.message.includes("does not match folder"))).toBe(true);
   });
+
+  it("WARNS but still loads when the name breaks the lowercase/hyphen rule (lenient)", () => {
+    const path = makeSkill("Bad_Name", "---\nname: Bad_Name\ndescription: Does a thing.\n---\nbody");
+    const { skill, diagnostics } = parseSkillFile(path);
+
+    expect(skill).toBeDefined();
+    expect(diagnostics.some((d) => d.level === "warn" && d.message.includes("lowercase"))).toBe(true);
+  });
 });

@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import matter from "gray-matter";
-import { NAME_MAX_LENGTH, SkillFrontmatterSchema, type Diagnostic, type ParsedSkill } from "./types";
+import { DESCRIPTION_MAX_LENGTH, NAME_MAX_LENGTH, SkillFrontmatterSchema, type Diagnostic, type ParsedSkill } from "./types";
+
+/** Spec rule for `name`: lowercase letters/digits with single hyphens (no leading/trailing/consecutive). */
+const NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /** Outcome of parsing one SKILL.md: the loaded skill (if usable) plus any diagnostics. */
 export interface ParseResult {
@@ -51,6 +54,12 @@ export function parseSkillFile(filePath: string): ParseResult {
   }
   if (name.length > NAME_MAX_LENGTH) {
     diagnostics.push({ level: "warn", skill: name, path: filePath, message: `name exceeds ${NAME_MAX_LENGTH} characters (loaded anyway)` });
+  }
+  if (!NAME_PATTERN.test(name)) {
+    diagnostics.push({ level: "warn", skill: name, path: filePath, message: `name "${name}" should be lowercase letters/digits with single hyphens (loaded anyway)` });
+  }
+  if (description.length > DESCRIPTION_MAX_LENGTH) {
+    diagnostics.push({ level: "warn", skill: name, path: filePath, message: `description exceeds ${DESCRIPTION_MAX_LENGTH} characters (loaded anyway)` });
   }
 
   const skill: ParsedSkill = {
