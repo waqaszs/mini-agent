@@ -45,14 +45,14 @@ export async function runAgentTurn(client: Anthropic, skills: Skill[], userInput
       (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
     );
 
-    if (response.stop_reason !== "tool_use" || toolUses.length === 0) {
-      // No tool call → final answer.
+    if (toolUses.length === 0) {
+      // No tool call → the model is giving its final answer.
       const text = response.content
         .filter((block): block is Anthropic.TextBlock => block.type === "text")
         .map((block) => block.text)
         .join("")
         .trim();
-      return { text, activatedSkills: dedupe(activated) };
+      return { text: finalText(text, response.stop_reason), activatedSkills: dedupe(activated) };
     }
 
     // Echo the assistant's tool-use message, then answer each tool call.
@@ -90,4 +90,18 @@ function handleToolUse(
 
 function dedupe(values: string[]): string[] {
   return [...new Set(values)];
+}
+
+/**
+ * Turn the model's text + stop reason into a user-facing reply, so we never return a silent
+ * blank line. A refusal or an empty stop becomes an explicit note; a truncated reply is flagged.
+ */
+function finalText(text: string, stopReason: string | null): string {
+  if (text === "") {
+    return `(No reply — the model stopped with reason: ${stopReason ?? "unknown"}.)`;
+  }
+  if (stopReason === "max_tokens") {
+    return `${text}\n\n[reply truncated at the output-token limit]`;
+  }
+  return text;
 }

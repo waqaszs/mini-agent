@@ -39,6 +39,15 @@ describe("buildSystemPrompt (the catalog the model sees)", () => {
     const prompt = buildSystemPrompt([]);
     expect(prompt).not.toContain("<available_skills>");
   });
+
+  it("escapes XML special characters in skill descriptions", () => {
+    const tricky: Skill[] = [
+      { name: "x", description: "Handle <tags> & ampersands", body: "b", location: "/x/x/SKILL.md", baseDir: "/x/x", source: "test" },
+    ];
+    const prompt = buildSystemPrompt(tricky);
+    expect(prompt).toContain("&lt;tags&gt;");
+    expect(prompt).toContain("&amp;");
+  });
 });
 
 describe("buildActivateSkillTool", () => {
