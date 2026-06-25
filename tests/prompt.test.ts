@@ -54,7 +54,8 @@ describe("buildActivateSkillTool", () => {
   it("constrains the name parameter to the EXACT set of skill names (enum)", () => {
     const tool = buildActivateSkillTool(skills);
     expect(tool.name).toBe(ACTIVATE_TOOL_NAME);
-    expect(tool.input_schema.properties.name.enum).toEqual(["welcome-me", "changelog-generator"]);
+    const props = tool.input_schema.properties as { name: { enum: string[] } };
+    expect(props.name.enum).toEqual(["welcome-me", "changelog-generator"]);
     expect(tool.input_schema.required).toContain("name");
   });
 });

@@ -1,3 +1,4 @@
+import type Anthropic from "@anthropic-ai/sdk";
 import type { Skill } from "../skills/types";
 
 /**
@@ -38,24 +39,12 @@ export function buildSystemPrompt(skills: Skill[]): string {
   ].join("\n");
 }
 
-/** The JSON-schema shape of the activate_skill tool (compatible with the Anthropic Tool type). */
-export interface ActivateSkillTool {
-  name: string;
-  description: string;
-  input_schema: {
-    type: "object";
-    properties: {
-      name: { type: "string"; enum: string[]; description: string };
-    };
-    required: string[];
-  };
-}
-
 /**
- * Build the `activate_skill` tool. Its `name` parameter is constrained to the EXACT set of
- * discovered skill names (an enum), so the model cannot hallucinate a nonexistent skill.
+ * Build the `activate_skill` tool, typed as the SDK's own `Anthropic.Tool` (no hand-rolled
+ * duplicate). Its `name` parameter is constrained to the EXACT set of discovered skill names
+ * (an enum), so the model cannot hallucinate a nonexistent skill.
  */
-export function buildActivateSkillTool(skills: Skill[]): ActivateSkillTool {
+export function buildActivateSkillTool(skills: Skill[]): Anthropic.Tool {
   return {
     name: ACTIVATE_TOOL_NAME,
     description: "Load a skill's full instructions into context. Call this when the user's request matches a skill listed in <available_skills>.",
