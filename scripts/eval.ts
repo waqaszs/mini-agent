@@ -4,7 +4,7 @@ import { join } from "node:path";
 import pc from "picocolors";
 import { createClient } from "../src/agent/anthropic";
 import { runAgentTurn } from "../src/agent/loop";
-import { discoverSkills } from "../src/skills/discover";
+import { SkillRegistry } from "../src/skills/registry";
 
 /**
  * Live trigger-eval (spec: "Designing trigger eval queries").
@@ -32,7 +32,8 @@ function behavedAsExpected(query: EvalQuery, activatedSkills: string[], reply: s
   if (query.expect === null) {
     return activatedSkills.length === 0; // unrelated prompt → no skill should load
   }
-  if (activatedSkills[0] !== query.expect) {
+  // A positive case must activate EXACTLY the expected skill — nothing missing, nothing extra.
+  if (activatedSkills.length !== 1 || activatedSkills[0] !== query.expect) {
     return false;
   }
   // welcome-me must additionally emit the exact required header.
@@ -47,7 +48,7 @@ async function main(): Promise<void> {
     readFileSync(join(process.cwd(), "scripts", "eval-queries.json"), "utf8"),
   ) as EvalQuery[];
 
-  const { skills } = discoverSkills(process.cwd());
+  const registry = SkillRegistry.fromProject(process.cwd());
   const client = createClient();
 
   console.log(pc.bold(`Running ${queries.length} trigger evals × ${RUNS} run(s)…\n`));
@@ -56,7 +57,7 @@ async function main(): Promise<void> {
   for (const query of queries) {
     let hits = 0;
     for (let i = 0; i < RUNS; i++) {
-      const { activatedSkills, text } = await runAgentTurn(client, skills, query.query);
+      const { activatedSkills, text } = await runAgentTurn(client, registry, query.query);
       if (behavedAsExpected(query, activatedSkills, text)) hits++;
     }
     const rate = hits / RUNS;

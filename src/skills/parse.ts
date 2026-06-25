@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import matter from "gray-matter";
-import { NAME_MAX_LENGTH, SkillFrontmatterSchema, type Diagnostic, type Skill } from "./types";
+import { NAME_MAX_LENGTH, SkillFrontmatterSchema, type Diagnostic, type ParsedSkill } from "./types";
 
 /** Outcome of parsing one SKILL.md: the loaded skill (if usable) plus any diagnostics. */
 export interface ParseResult {
-  skill?: Skill;
+  skill?: ParsedSkill;
   diagnostics: Diagnostic[];
 }
 
@@ -53,13 +53,12 @@ export function parseSkillFile(filePath: string): ParseResult {
     diagnostics.push({ level: "warn", skill: name, path: filePath, message: `name exceeds ${NAME_MAX_LENGTH} characters (loaded anyway)` });
   }
 
-  const skill: Skill = {
+  const skill: ParsedSkill = {
     name,
     description,
     body: parsed.content.trim(),
     location: filePath,
     baseDir,
-    source: "", // filled in by the discoverer once the winning root is known
   };
   return { skill, diagnostics };
 }

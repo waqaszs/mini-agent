@@ -67,8 +67,7 @@ export function discoverSkills(projectDir: string, roots: SkillRoot[] = defaultS
       }
 
       winner.set(skill.name, root.label);
-      skill.source = root.label;
-      skills.push(skill);
+      skills.push({ ...skill, source: root.label }); // parsed skill + the root it won from
     }
   }
 

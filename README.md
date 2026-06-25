@@ -41,7 +41,7 @@ It follows the [Agent Skills client-implementation guide](https://agentskills.io
 | 4 · Activate | `src/agent/loop.ts` — model calls the `activate_skill` tool (its `name` is an **enum** of real skills); only then is that skill's body injected |
 | 5 · Manage | `src/agent/loop.ts` — de-duplicates repeat activations within a turn |
 
-Because a skill's body enters context **only on activation**, an unrelated prompt never pulls a skill's instructions into context.
+Skills are discovered once into a `SkillRegistry` (`src/skills/registry.ts`), which the agent and the UI both query. Because a skill's body enters context **only on activation**, an unrelated prompt never pulls a skill's instructions into context.
 
 ## Project structure
 
@@ -52,9 +52,10 @@ mini-agent/
 │   ├── changelog-generator/SKILL.md  # from CommandCodeAI/agent-skills
 │   └── using-git-worktrees/SKILL.md  # from CommandCodeAI/agent-skills
 ├── src/
-│   ├── cli.ts                        # the CLI / TUI (interactive + one-shot)
+│   ├── cli.ts                        # command wiring + interactive REPL / one-shot
+│   ├── ui.ts                         # presentation (banner + reply rendering)
 │   ├── config.ts                     # model + spend-bounding caps
-│   ├── skills/{types,parse,discover}.ts
+│   ├── skills/{types,parse,discover,registry}.ts
 │   └── agent/{prompt,anthropic,loop}.ts
 ├── scripts/{eval.ts,eval-queries.json}   # live trigger-eval
 └── tests/                            # unit tests
@@ -63,7 +64,7 @@ mini-agent/
 ## Testing
 
 ```bash
-pnpm test        # unit tests (offline): parsing, discovery, catalog, prompt construction
+pnpm test        # unit tests (offline): parsing, discovery, catalog, prompt + the agent loop (mocked client)
 pnpm eval        # LIVE trigger-eval — runs prompts through the model and checks the right skill
                  # activates (and none for unrelated prompts). Set EVAL_RUNS=3 to average runs.
 pnpm typecheck   # tsc --noEmit
@@ -76,18 +77,3 @@ The unit tests assert (among other things) that the catalog **never leaks skill 
 - The API key is read **only** from `process.env.ANTHROPIC_API_KEY` — never hardcoded; `.env` is gitignored.
 - Tool input is validated (Zod) before use; the tool's `name` is constrained to the real skill set.
 - Spend is bounded per call (`max_tokens`) and per turn (`MAX_AGENT_TURNS`) in `src/config.ts`.
-
----
-
-## Submission notes
-
-**Time spent:** _(fill in your actual hours before submitting)_
-
-**Challenges / what was interesting:**
-
-- **Getting "matching" right *is* the assignment.** The naive approach — putting every skill's full `SKILL.md` into the prompt — would pass the happy path but fail the requirement that an unrelated prompt (`what's the weather?`) must **not** load a skill into context. Implementing the spec's *progressive disclosure* (a name+description catalog up front, and the body loaded only when the model calls `activate_skill`) is what makes that work.
-- **A real gotcha in the skill itself.** Command Code's *own* published `welcome-me` skill (in `CommandCodeAI/agent-skills`) specifies a different header than this assignment's instructions. I followed the **assignment's** required header (`> Welcome to our coding agent!`) and authored my own `welcome-me`, rather than copying the published one.
-- **Making a generic ask trigger reliably.** "What should I do?" is something the model can answer on its own, so it might *not* reach for a skill. I wrote welcome-me's `description` to be imperative and project-specific so it fires on newcomer prompts — but tuned it (and verified with the eval) so a near-miss like *"I'm new to Rust"* does **not** trigger it.
-- **Forcing an exact output string from an LLM.** The header has to be byte-exact, so the skill body states it as a hard requirement; a unit test guards it and the live eval confirms it.
-
-**Demo instructions:** `pnpm install && cp .env.example .env` (add the key), then `pnpm dev`. Test prompts: `I'm new to this project, what should I do` (→ welcome header), `create a changelog from recent commits` (→ changelog skill), `what's the weather?` (→ no skill).

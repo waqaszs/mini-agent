@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type Anthropic from "@anthropic-ai/sdk";
 import { runAgentTurn } from "../src/agent/loop";
 import type { Skill } from "../src/skills/types";
+import { SkillRegistry } from "../src/skills/registry";
 
 /**
  * Offline tests for the agent loop, using a mocked Anthropic client. These exercise the
@@ -41,7 +42,7 @@ describe("runAgentTurn (mocked client)", () => {
       toolCall("activate_skill", { name: "welcome-me" }),
       finalAnswer("> Welcome to our coding agent!\nHi there!"),
     ]);
-    const result = await runAgentTurn(client, [skill], "I'm new here");
+    const result = await runAgentTurn(client, new SkillRegistry([skill]), "I'm new here");
 
     expect(result.activatedSkills).toEqual(["welcome-me"]);
     expect(result.text).toContain("> Welcome to our coding agent!");
@@ -54,7 +55,7 @@ describe("runAgentTurn (mocked client)", () => {
 
   it("returns no activation when the model answers directly (unrelated prompt)", async () => {
     const { client } = makeClient([finalAnswer("It's sunny today.")]);
-    const result = await runAgentTurn(client, [skill], "what's the weather?");
+    const result = await runAgentTurn(client, new SkillRegistry([skill]), "what's the weather?");
     expect(result.activatedSkills).toEqual([]);
     expect(result.text).toBe("It's sunny today.");
   });
@@ -64,14 +65,14 @@ describe("runAgentTurn (mocked client)", () => {
       toolCall("activate_skill", { name: "does-not-exist" }),
       finalAnswer("ok"),
     ]);
-    const result = await runAgentTurn(client, [skill], "x");
+    const result = await runAgentTurn(client, new SkillRegistry([skill]), "x");
     expect(result.activatedSkills).toEqual([]);
     expect(JSON.stringify(create.mock.calls[1])).toContain('"is_error":true');
   });
 
   it("rejects malformed tool input (no activation)", async () => {
     const { client } = makeClient([toolCall("activate_skill", { wrong: "field" }), finalAnswer("ok")]);
-    const result = await runAgentTurn(client, [skill], "x");
+    const result = await runAgentTurn(client, new SkillRegistry([skill]), "x");
     expect(result.activatedSkills).toEqual([]);
   });
 
@@ -81,21 +82,29 @@ describe("runAgentTurn (mocked client)", () => {
       toolCall("activate_skill", { name: "welcome-me" }),
       finalAnswer("done"),
     ]);
-    const result = await runAgentTurn(client, [skill], "x");
+    const result = await runAgentTurn(client, new SkillRegistry([skill]), "x");
     expect(result.activatedSkills).toEqual(["welcome-me"]);
   });
 
   it("stops after the maximum number of turns if the model never finishes", async () => {
     const create = vi.fn().mockResolvedValue(toolCall("activate_skill", { name: "welcome-me" }));
     const client = { messages: { create } } as unknown as Anthropic;
-    const result = await runAgentTurn(client, [skill], "x");
+    const result = await runAgentTurn(client, new SkillRegistry([skill]), "x");
     expect(result.text).toMatch(/maximum number of agent turns/i);
   });
 
   it("surfaces a message (not a blank line) when the model stops with no text", async () => {
     const { client } = makeClient([finalAnswer("", "refusal")]);
-    const result = await runAgentTurn(client, [skill], "x");
+    const result = await runAgentTurn(client, new SkillRegistry([skill]), "x");
     expect(result.text).not.toBe("");
     expect(result.text.toLowerCase()).toContain("refusal");
+  });
+
+  it("passes no tools and activates nothing when there are no skills", async () => {
+    const { client, create } = makeClient([finalAnswer("hello")]);
+    const result = await runAgentTurn(client, new SkillRegistry([]), "hi");
+    expect(result.activatedSkills).toEqual([]);
+    const firstCall = create.mock.calls[0]?.[0] as { tools?: unknown };
+    expect(firstCall.tools).toBeUndefined();
   });
 });

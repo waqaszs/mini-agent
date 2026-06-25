@@ -25,8 +25,11 @@ export const SkillFrontmatterSchema = z.object({
 
 export type SkillFrontmatter = z.infer<typeof SkillFrontmatterSchema>;
 
-/** A fully-loaded skill, ready for the catalog and (on demand) activation. */
-export interface Skill {
+/**
+ * A skill as it comes out of the parser — everything except where it was found.
+ * (Discovery decides which root "wins" a given name, so `source` is added there, not here.)
+ */
+export interface ParsedSkill {
   /** Skill identifier (should match the folder name). */
   name: string;
   /** What the skill does + when to use it — drives matching (catalog tier 1). */
@@ -37,6 +40,10 @@ export interface Skill {
   location: string;
   /** The skill's directory (parent of SKILL.md) — for resolving relative references. */
   baseDir: string;
+}
+
+/** A discovered skill: a parsed skill plus the root it was loaded from. */
+export interface Skill extends ParsedSkill {
   /** Which skills root this came from (for diagnostics / collision reporting). */
   source: string;
 }

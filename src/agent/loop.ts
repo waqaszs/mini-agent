@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { MAX_AGENT_TURNS, MAX_TOKENS, MODEL } from "../config";
-import type { Skill } from "../skills/types";
+import type { SkillRegistry } from "../skills/registry";
 import { ACTIVATE_TOOL_NAME, buildActivateSkillTool, buildSystemPrompt, wrapSkillContent } from "./prompt";
 
 /** Validate the activate_skill tool input before acting on it (never trust raw model input). */
@@ -24,10 +24,9 @@ export interface AgentResult {
  * Skill bodies enter context ONLY here, on activation — so an unrelated prompt
  * (e.g. "what's the weather?") never pulls a skill's instructions into context.
  */
-export async function runAgentTurn(client: Anthropic, skills: Skill[], userInput: string): Promise<AgentResult> {
-  const system = buildSystemPrompt(skills);
-  const tools: Anthropic.Tool[] = skills.length > 0 ? [buildActivateSkillTool(skills)] : [];
-  const skillsByName = new Map(skills.map((s) => [s.name, s]));
+export async function runAgentTurn(client: Anthropic, registry: SkillRegistry, userInput: string): Promise<AgentResult> {
+  const system = buildSystemPrompt(registry.skills);
+  const tools: Anthropic.Tool[] = registry.isEmpty ? [] : [buildActivateSkillTool(registry.skills)];
   const activated: string[] = [];
 
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: userInput }];
@@ -57,7 +56,7 @@ export async function runAgentTurn(client: Anthropic, skills: Skill[], userInput
 
     // Echo the assistant's tool-use message, then answer each tool call.
     messages.push({ role: "assistant", content: response.content });
-    const toolResults = toolUses.map((toolUse) => handleToolUse(toolUse, skillsByName, activated));
+    const toolResults = toolUses.map((toolUse) => handleToolUse(toolUse, registry, activated));
     messages.push({ role: "user", content: toolResults });
   }
 
@@ -67,7 +66,7 @@ export async function runAgentTurn(client: Anthropic, skills: Skill[], userInput
 /** Resolve a single tool call into a `tool_result` block (activating the skill if the name is valid). */
 function handleToolUse(
   toolUse: Anthropic.ToolUseBlock,
-  skillsByName: Map<string, Skill>,
+  registry: SkillRegistry,
   activated: string[],
 ): Anthropic.ToolResultBlockParam {
   if (toolUse.name !== ACTIVATE_TOOL_NAME) {
@@ -79,7 +78,7 @@ function handleToolUse(
     return { type: "tool_result", tool_use_id: toolUse.id, content: "Error: activate_skill requires a string 'name'.", is_error: true };
   }
 
-  const skill = skillsByName.get(parsed.data.name);
+  const skill = registry.get(parsed.data.name);
   if (!skill) {
     return { type: "tool_result", tool_use_id: toolUse.id, content: `Error: no skill named "${parsed.data.name}".`, is_error: true };
   }
