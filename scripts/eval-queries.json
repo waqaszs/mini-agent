@@ -1,0 +1,14 @@
+[
+  { "query": "I'm new to this project, what should I do", "expect": "welcome-me" },
+  { "query": "new to this project what should i do", "expect": "welcome-me" },
+  { "query": "hey, just joined the team and cloned this repo — where do I start?", "expect": "welcome-me" },
+  { "query": "can you welcome me?", "expect": "welcome-me" },
+  { "query": "create a changelog from the recent commits", "expect": "changelog-generator" },
+  { "query": "generate user-facing release notes for the last week of changes", "expect": "changelog-generator" },
+  { "query": "set up an isolated git worktree for a new feature branch", "expect": "using-git-worktrees" },
+  { "query": "I want to work on two branches at once without stashing — help me isolate the workspace", "expect": "using-git-worktrees" },
+  { "query": "what's the weather?", "expect": null },
+  { "query": "what's the weather today in Lahore?", "expect": null },
+  { "query": "write a function to reverse a string in python", "expect": null },
+  { "query": "I'm new to Rust, can you explain ownership and borrowing?", "expect": null }
+]
