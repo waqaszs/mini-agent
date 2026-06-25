@@ -2,10 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { MAX_AGENT_TURNS, MAX_TOKENS, MODEL } from "../config";
 import type { SkillRegistry } from "../skills/registry";
-import { ACTIVATE_TOOL_NAME, buildActivateSkillTool, buildSystemPrompt, wrapSkillContent } from "./prompt";
+import { SKILL_TOOL_NAME, buildSkillTool, buildSystemPrompt, wrapSkillContent } from "./prompt";
 
-/** Validate the activate_skill tool input before acting on it (never trust raw model input). */
-const ActivateSkillInput = z.object({ name: z.string() });
+/** Validate the Skill tool input before acting on it (never trust raw model input). */
+const SkillToolInput = z.object({ skill: z.string() });
 
 export interface AgentResult {
   /** The model's final text answer. */
@@ -17,8 +17,8 @@ export interface AgentResult {
 /**
  * Run one user turn through the agent loop (spec Steps 3–5).
  *
- * 1. Show the model the catalog (system prompt) + the enum-constrained `activate_skill` tool.
- * 2. If the model calls `activate_skill`, validate the name and inject THAT skill's body as the
+ * 1. Show the model the catalog (system prompt) + the enum-constrained `Skill` tool.
+ * 2. If the model calls `Skill`, validate the name and inject THAT skill's body as the
  *    tool result, then loop. Otherwise return the model's text answer.
  *
  * Skill bodies enter context ONLY here, on activation — so an unrelated prompt
@@ -26,7 +26,7 @@ export interface AgentResult {
  */
 export async function runAgentTurn(client: Anthropic, registry: SkillRegistry, userInput: string): Promise<AgentResult> {
   const system = buildSystemPrompt(registry.skills);
-  const tools: Anthropic.Tool[] = registry.isEmpty ? [] : [buildActivateSkillTool(registry.skills)];
+  const tools: Anthropic.Tool[] = registry.isEmpty ? [] : [buildSkillTool(registry.skills)];
   const activated: string[] = [];
 
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: userInput }];
@@ -69,18 +69,18 @@ function handleToolUse(
   registry: SkillRegistry,
   activated: string[],
 ): Anthropic.ToolResultBlockParam {
-  if (toolUse.name !== ACTIVATE_TOOL_NAME) {
+  if (toolUse.name !== SKILL_TOOL_NAME) {
     return { type: "tool_result", tool_use_id: toolUse.id, content: `Error: unknown tool "${toolUse.name}".`, is_error: true };
   }
 
-  const parsed = ActivateSkillInput.safeParse(toolUse.input);
+  const parsed = SkillToolInput.safeParse(toolUse.input);
   if (!parsed.success) {
-    return { type: "tool_result", tool_use_id: toolUse.id, content: "Error: activate_skill requires a string 'name'.", is_error: true };
+    return { type: "tool_result", tool_use_id: toolUse.id, content: "Error: the Skill tool requires a string 'skill'.", is_error: true };
   }
 
-  const skill = registry.get(parsed.data.name);
+  const skill = registry.get(parsed.data.skill);
   if (!skill) {
-    return { type: "tool_result", tool_use_id: toolUse.id, content: `Error: no skill named "${parsed.data.name}".`, is_error: true };
+    return { type: "tool_result", tool_use_id: toolUse.id, content: `Error: no skill named "${parsed.data.skill}".`, is_error: true };
   }
 
   activated.push(skill.name);

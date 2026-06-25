@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACTIVATE_TOOL_NAME, buildActivateSkillTool, buildSystemPrompt } from "../src/agent/prompt";
+import { SKILL_TOOL_NAME, buildSkillTool, buildSystemPrompt } from "../src/agent/prompt";
 import type { Skill } from "../src/skills/types";
 
 const skills: Skill[] = [
@@ -50,12 +50,12 @@ describe("buildSystemPrompt (the catalog the model sees)", () => {
   });
 });
 
-describe("buildActivateSkillTool", () => {
-  it("constrains the name parameter to the EXACT set of skill names (enum)", () => {
-    const tool = buildActivateSkillTool(skills);
-    expect(tool.name).toBe(ACTIVATE_TOOL_NAME);
-    const props = tool.input_schema.properties as { name: { enum: string[] } };
-    expect(props.name.enum).toEqual(["welcome-me", "changelog-generator"]);
-    expect(tool.input_schema.required).toContain("name");
+describe("buildSkillTool", () => {
+  it("constrains the skill parameter to the EXACT set of skill names (enum)", () => {
+    const tool = buildSkillTool(skills);
+    expect(tool.name).toBe(SKILL_TOOL_NAME);
+    const props = tool.input_schema.properties as { skill: { enum: string[] } };
+    expect(props.skill.enum).toEqual(["welcome-me", "changelog-generator"]);
+    expect(tool.input_schema.required).toContain("skill");
   });
 });

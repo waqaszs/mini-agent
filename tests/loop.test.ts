@@ -39,7 +39,7 @@ const finalAnswer = (text: string, stop_reason = "end_turn") => ({
 describe("runAgentTurn (mocked client)", () => {
   it("activates the matched skill, injects its body, and returns the final answer", async () => {
     const { client, create } = makeClient([
-      toolCall("activate_skill", { name: "welcome-me" }),
+      toolCall("Skill", { skill: "welcome-me" }),
       finalAnswer("> Welcome to our coding agent!\nHi there!"),
     ]);
     const result = await runAgentTurn(client, new SkillRegistry([skill]), "I'm new here");
@@ -62,7 +62,7 @@ describe("runAgentTurn (mocked client)", () => {
 
   it("returns an error tool_result for an unknown skill name (no crash, no activation)", async () => {
     const { client, create } = makeClient([
-      toolCall("activate_skill", { name: "does-not-exist" }),
+      toolCall("Skill", { skill: "does-not-exist" }),
       finalAnswer("ok"),
     ]);
     const result = await runAgentTurn(client, new SkillRegistry([skill]), "x");
@@ -71,15 +71,15 @@ describe("runAgentTurn (mocked client)", () => {
   });
 
   it("rejects malformed tool input (no activation)", async () => {
-    const { client } = makeClient([toolCall("activate_skill", { wrong: "field" }), finalAnswer("ok")]);
+    const { client } = makeClient([toolCall("Skill", { wrong: "field" }), finalAnswer("ok")]);
     const result = await runAgentTurn(client, new SkillRegistry([skill]), "x");
     expect(result.activatedSkills).toEqual([]);
   });
 
   it("de-duplicates repeat activations of the same skill", async () => {
     const { client } = makeClient([
-      toolCall("activate_skill", { name: "welcome-me" }),
-      toolCall("activate_skill", { name: "welcome-me" }),
+      toolCall("Skill", { skill: "welcome-me" }),
+      toolCall("Skill", { skill: "welcome-me" }),
       finalAnswer("done"),
     ]);
     const result = await runAgentTurn(client, new SkillRegistry([skill]), "x");
@@ -87,7 +87,7 @@ describe("runAgentTurn (mocked client)", () => {
   });
 
   it("stops after the maximum number of turns if the model never finishes", async () => {
-    const create = vi.fn().mockResolvedValue(toolCall("activate_skill", { name: "welcome-me" }));
+    const create = vi.fn().mockResolvedValue(toolCall("Skill", { skill: "welcome-me" }));
     const client = { messages: { create } } as unknown as Anthropic;
     const result = await runAgentTurn(client, new SkillRegistry([skill]), "x");
     expect(result.text).toMatch(/maximum number of agent turns/i);
