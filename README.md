@@ -1,24 +1,8 @@
 # mini-agent
 
-```text
-╭──────────────────────────────────────────────────────────────────────────────╮
-│                                                                              │
-│   _    _   ___   _  _   ___           _      ___   ___   _  _   _____        │
-│   | \  / | |_ _| | \| | |_ _|  ___    /_\    / __| | __| | \| | |_   _|      │
-│   | |\/| |  | |  | .` |  | |  |___|  / _ \  | (_ | | _|  | .` |   | |        │
-│   |_|  |_| |___| |_|\_| |___|       /_/ \_\  \___| |___| |_|\_|   |_|        │
-│                                                                              │
-│   v0.0.1  ·  a skill-aware coding agent  ·  Agent Skills spec  ·  Claude     │
-│   Sonnet                                                                     │
-│   by Waqas Haider · engr.waqashaider@gmail.com                               │
-│                                                                              │
-│   skills  changelog-generator · domain-name-brainstormer · welcome-me        │
-│   model   claude-sonnet-4-6                                                  │
-│                                                                              │
-╰──────────────────────────────────────────────────────────────────────────────╯
-```
+![mini-agent startup banner](docs/banner.png)
 
-> The startup banner shown on `pnpm dev` — rendered in cyan in your terminal (the bold `block` wordmark appears on wide terminals).
+> The startup banner shown on `pnpm dev` (the bold `block` wordmark renders on a wide terminal; a narrower one gets the compact `simple` font).
 
 A mini coding agent — a **Node.js CLI** (TypeScript) that implements the open [Agent Skills](https://agentskills.io) specification, powered by **Claude's Sonnet** model.
 
