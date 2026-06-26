@@ -20,7 +20,7 @@ describe("shipped skills", () => {
       { path: join(process.cwd(), ".skills"), label: "project:.skills" },
     ]);
 
-    expect(skills.map((s) => s.name).sort()).toEqual(["changelog-generator", "using-git-worktrees", "welcome-me"]);
+    expect(skills.map((s) => s.name).sort()).toEqual(["changelog-generator", "domain-name-brainstormer", "welcome-me"]);
     // No name/folder mismatch warnings expected for our own skills.
     expect(diagnostics.filter((d) => d.message.includes("does not match folder"))).toHaveLength(0);
   });

@@ -24,7 +24,7 @@ pnpm dev "I'm new to this project, what should I do"
 | --- | --- |
 | `I'm new to this project, what should I do` | activates **welcome-me** → reply begins with `> Welcome to our coding agent!` |
 | `create a changelog from the recent commits` | activates **changelog-generator** |
-| `set up an isolated git worktree for a new feature` | activates **using-git-worktrees** |
+| `brainstorm domain names for a coffee subscription app` | activates **domain-name-brainstormer** |
 | `what's the weather?` | **no skill loaded** — the agent just answers |
 
 The CLI prints a `◆ skill activated: …` line whenever a skill is used, so the matching is visible.
@@ -38,7 +38,7 @@ It follows the [Agent Skills client-implementation guide](https://agentskills.io
 | 1 · Discover | `src/skills/discover.ts` — scans `.skills/` (and `.agents/skills/`) for `SKILL.md` directories, with precedence + shadowing |
 | 2 · Parse | `src/skills/parse.ts` — splits frontmatter/body, validates with Zod, stays lenient (missing description → skip) |
 | 3 · Disclose | `src/agent/prompt.ts` — builds the `<available_skills>` catalog (name + description **only**) |
-| 4 · Activate | `src/agent/loop.ts` — model calls the `activate_skill` tool (its `name` is an **enum** of real skills); only then is that skill's body injected |
+| 4 · Activate | `src/agent/loop.ts` — model calls the `Skill` tool (its `skill` argument is an **enum** of real skills); only then is that skill's body injected |
 | 5 · Manage | `src/agent/loop.ts` — de-duplicates repeat activations within a turn |
 
 Skills are discovered once into a `SkillRegistry` (`src/skills/registry.ts`), which the agent and the UI both query. Because a skill's body enters context **only on activation**, an unrelated prompt never pulls a skill's instructions into context.
@@ -50,7 +50,7 @@ mini-agent/
 ├── .skills/
 │   ├── welcome-me/SKILL.md           # authored for this project
 │   ├── changelog-generator/SKILL.md  # from CommandCodeAI/agent-skills
-│   └── using-git-worktrees/SKILL.md  # from CommandCodeAI/agent-skills
+│   └── domain-name-brainstormer/SKILL.md  # from CommandCodeAI/agent-skills
 ├── src/
 │   ├── cli.ts                        # command wiring + interactive REPL / one-shot
 │   ├── ui.ts                         # presentation (banner + reply rendering)
@@ -70,7 +70,7 @@ pnpm eval        # LIVE trigger-eval — runs prompts through the model and chec
 pnpm typecheck   # tsc --noEmit
 ```
 
-The unit tests assert (among other things) that the catalog **never leaks skill bodies**, that the `activate_skill` tool is enum-constrained, and that welcome-me carries the exact required header.
+The unit tests assert (among other things) that the catalog **never leaks skill bodies**, that the `Skill` tool is enum-constrained, and that welcome-me carries the exact required header.
 
 ## Security
 
