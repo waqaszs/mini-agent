@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+
+# Secrets — the API key lives only in .env, which is NEVER committed.
+.env
+.env.local
+
+*.log
+.DS_Store
