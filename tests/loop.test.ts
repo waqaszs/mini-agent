@@ -107,4 +107,29 @@ describe("runAgentTurn (mocked client)", () => {
     const firstCall = create.mock.calls[0]?.[0] as { tools?: unknown };
     expect(firstCall.tools).toBeUndefined();
   });
+
+  it("replays the assistant's tool_use turn before the tool_result (correct Anthropic pairing — no orphaned results)", async () => {
+    const { client, create } = makeClient([
+      toolCall("Skill", { skill: "welcome-me" }),
+      finalAnswer("> Welcome to our coding agent!"),
+    ]);
+    await runAgentTurn(client, new SkillRegistry([skill]), "I'm new here");
+
+    // The 2nd API call's history must be: [0] user prompt → [1] assistant WITH the tool_use →
+    // [2] user WITH the tool_result, paired by the same tool_use_id (or the real API returns 400).
+    const secondCall = create.mock.calls[1]?.[0] as {
+      messages: Array<{ role: string; content: Array<{ type: string; id?: string; tool_use_id?: string }> | string }>;
+    };
+    const assistantTurn = secondCall.messages[1];
+    const resultTurn = secondCall.messages[2];
+
+    expect(assistantTurn?.role).toBe("assistant");
+    const toolUse = (assistantTurn!.content as Array<{ type: string; id?: string }>).find((b) => b.type === "tool_use");
+    expect(toolUse?.id).toBe("tu_1"); // the AI's call is replayed in history
+
+    expect(resultTurn?.role).toBe("user");
+    const result = (resultTurn!.content as Array<{ type: string; tool_use_id?: string }>)[0];
+    expect(result?.type).toBe("tool_result");
+    expect(result?.tool_use_id).toBe("tu_1"); // result paired to the matching tool_use
+  });
 });
