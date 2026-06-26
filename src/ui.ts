@@ -1,6 +1,6 @@
 import { log } from "@clack/prompts";
 import boxen from "boxen";
-import { render } from "cfonts";
+import cfonts from "cfonts";
 import pc from "picocolors";
 import { MODEL } from "./config";
 import type { SkillRegistry } from "./skills/registry";
@@ -22,7 +22,7 @@ function logo(): string {
   const columns = process.stdout.columns ?? 80;
   const font = columns >= 95 ? "block" : "simple";
   try {
-    const rendered = render("mini-agent", { font, colors: ["cyan"], space: false });
+    const rendered = cfonts.render("mini-agent", { font, colors: ["cyan"], space: false });
     if (rendered && rendered.string) {
       return rendered.string.replace(/^\n+|\n+$/g, "");
     }
