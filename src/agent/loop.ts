@@ -24,12 +24,20 @@ export interface AgentResult {
  * Skill bodies enter context ONLY here, on activation — so an unrelated prompt
  * (e.g. "what's the weather?") never pulls a skill's instructions into context.
  */
-export async function runAgentTurn(client: Anthropic, registry: SkillRegistry, userInput: string): Promise<AgentResult> {
+export async function runAgentTurn(
+  client: Anthropic,
+  registry: SkillRegistry,
+  userInput: string,
+  history: Anthropic.MessageParam[] = [],
+): Promise<AgentResult> {
   const system = buildSystemPrompt(registry.skills);
   const tools: Anthropic.Tool[] = registry.isEmpty ? [] : [buildSkillTool(registry.skills)];
   const activated: string[] = [];
 
-  const messages: Anthropic.MessageParam[] = [{ role: "user", content: userInput }];
+  // The conversation history is caller-owned: an interactive session keeps memory across turns by
+  // reusing the same array. Each new prompt is appended to everything that came before.
+  const messages = history;
+  messages.push({ role: "user", content: userInput });
 
   for (let turn = 0; turn < MAX_AGENT_TURNS; turn++) {
     const response = await client.messages.create({
@@ -45,7 +53,8 @@ export async function runAgentTurn(client: Anthropic, registry: SkillRegistry, u
     );
 
     if (toolUses.length === 0) {
-      // No tool call → the model is giving its final answer.
+      // No tool call → final answer. Append it so the NEXT turn remembers this exchange.
+      messages.push({ role: "assistant", content: response.content });
       const text = response.content
         .filter((block): block is Anthropic.TextBlock => block.type === "text")
         .map((block) => block.text)

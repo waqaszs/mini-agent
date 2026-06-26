@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { cancel, intro, isCancel, log, outro, spinner, text } from "@clack/prompts";
 import pc from "picocolors";
+import type Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "./agent/anthropic";
 import { runAgentTurn } from "./agent/loop";
 import { SkillRegistry } from "./skills/registry";
@@ -26,6 +27,8 @@ function readVersion(): string {
 /** Interactive REPL: read a prompt, run the agent, print the reply, repeat. */
 async function runInteractive(registry: SkillRegistry): Promise<void> {
   const client = createClient();
+  // One conversation, kept across turns — each new prompt is appended to the running history.
+  const history: Anthropic.MessageParam[] = [];
   intro(pc.inverse(pc.bold(" mini-agent ")));
   log.info(pc.dim("Ask anything — a skill loads only when your prompt matches it. Type 'exit' to quit."));
 
@@ -45,7 +48,7 @@ async function runInteractive(registry: SkillRegistry): Promise<void> {
     const progress = spinner();
     progress.start("thinking");
     try {
-      const { text: reply, activatedSkills } = await runAgentTurn(client, registry, prompt);
+      const { text: reply, activatedSkills } = await runAgentTurn(client, registry, prompt, history);
       progress.stop(pc.dim("done"));
       printReply(reply, activatedSkills);
     } catch (err) {

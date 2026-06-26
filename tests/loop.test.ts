@@ -132,4 +132,20 @@ describe("runAgentTurn (mocked client)", () => {
     expect(result?.type).toBe("tool_result");
     expect(result?.tool_use_id).toBe("tu_1"); // result paired to the matching tool_use
   });
+
+  it("carries prior conversation turns forward when a history is passed (chat memory)", async () => {
+    const { client, create } = makeClient([finalAnswer("here are some funky coffee names")]);
+    const history: Anthropic.MessageParam[] = [
+      { role: "user", content: "brainstorm domain names for my coffee app" },
+      { role: "assistant", content: "Here are some: brewclub.com, beanbox.com" },
+    ];
+    await runAgentTurn(client, new SkillRegistry([skill]), "make them funky", history);
+
+    // The API call must include the PRIOR turns + the new prompt — so 'make them funky' has context.
+    const sent = (create.mock.calls[0]?.[0] as { messages: Anthropic.MessageParam[] }).messages;
+    expect(sent.length).toBeGreaterThanOrEqual(3);
+    const dump = JSON.stringify(sent);
+    expect(dump).toContain("brainstorm domain names for my coffee app");
+    expect(dump).toContain("make them funky");
+  });
 });
